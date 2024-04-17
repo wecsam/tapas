@@ -52,6 +52,10 @@ def read_clips(csv_path: pathlib.Path) -> Generator[Clip, None, None]:
             if not file:
                 print(f"Row {row_number} error: File missing")
                 break
+
+            if file != next_row.get("File"):
+                continue
+
             file = pathlib.PurePath(file)
 
             inpoint = this_row.get("Inpoint")

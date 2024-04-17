@@ -27,8 +27,13 @@ You will need enough storage space to store a copy of the footage from the camer
 2. Use your favorite spreadsheet application to create a CSV file with timestamps at which the videos should be split.
    It should have the following columns (other columns will be ignored):
     * **File**: specify the path, relative to the CSV file, of the video to split into smaller clips.
-    * **Inpoint**: specify the time in the video at which the clip should start. The clip will end at the next clip's
-      inpoint. You can use any string that [pytimeparse](https://github.com/onegreyonewhite/pytimeparse2) recognizes.
+       * Rows with the same file should be together.
+    * **Inpoint**: specify the time in the video at which the clip should start.
+       * You can use any string that [pytimeparse](https://github.com/onegreyonewhite/pytimeparse2) recognizes.
+       * Within each group of rows with the same file, rows should be ordered by inpoint in ascending order.
+       * The clip will end at the next clip's inpoint.
+       * For each file, no clip will be generated starting at the last inpoint; it instead will be treated as the
+         outpoint of the last clip.
     * **Name**: specify the name to use for the clip after it is uploaded to YouTube. This does not affect the filename
       of the clip.
     * **Description**: specify a description for clip after it is uploaded to YouTube. This column is optional.
