@@ -22,8 +22,12 @@ def get_format_tags(file: pathlib.Path) -> dict:
 def get_creation_time(file: pathlib.Path) -> Optional[datetime.datetime]:
     creation_time_str = get_format_tags(file).get("creation_time")
     if creation_time_str:
-        return datetime.datetime.strptime(creation_time_str, TIMESTAMP_FORMAT)
+        return parse_dt(creation_time_str)
     return None
+
+def parse_dt(s: str) -> datetime.datetime:
+    # The UTC time zone can be added because TIMESTAMP_FORMAT contains "Z" at the end.
+    return datetime.datetime.strptime(s, TIMESTAMP_FORMAT).replace(tzinfo=datetime.timezone.utc)
 
 def format_dt(dt: datetime.datetime) -> str:
     return dt.astimezone(datetime.timezone.utc).strftime(TIMESTAMP_FORMAT)
