@@ -13,6 +13,14 @@ def dji_concat(dir_in: pathlib.Path, dir_out: typing.Optional[pathlib.Path]):
     if dir_out is None:
         dir_out = dir_in
 
+    if not dir_in.is_dir():
+        print("Error: dir_in does not exist")
+        return
+
+    if not dir_out.is_dir():
+        print("Error: dir_out does not exist")
+        return
+
     files_to_concat = collections.defaultdict(list)
     for file in dir_in.iterdir():
         if not file.is_file():

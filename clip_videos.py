@@ -12,6 +12,10 @@ import tapas.clips_csv as clips_csv
 import tapas.ffmpeg as ffmpeg
 
 def clip_videos(csv_path: pathlib.Path, output_dir: pathlib.Path, encode=False):
+    if not output_dir.is_dir():
+        print("Error: output_dir does not exist")
+        return
+
     clips_from_file = collections.defaultdict(list)
     for clip in clips_csv.read_clips(csv_path):
         clips_from_file[clip.file].append(clip)
