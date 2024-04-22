@@ -3,12 +3,16 @@ import argparse
 import collections
 import pathlib
 import shutil
+import typing
 
 import wakepy.keep
 
 import tapas.ffmpeg as ffmpeg
 
-def dji_concat(dir_in: pathlib.Path, dir_out: pathlib.Path):
+def dji_concat(dir_in: pathlib.Path, dir_out: typing.Optional[pathlib.Path]):
+    if dir_out is None:
+        dir_out = dir_in
+
     files_to_concat = collections.defaultdict(list)
     for file in dir_in.iterdir():
         if not file.is_file():
@@ -22,7 +26,10 @@ def dji_concat(dir_in: pathlib.Path, dir_out: pathlib.Path):
             files_to_concat[name_parts[1]].append(name_parts[2])
         else: # DJI_1234.MP4
             print("Copying:", file)
-            shutil.copy2(file, dir_out.joinpath(file.name))
+            try:
+                shutil.copy2(file, dir_out.joinpath(file.name))
+            except shutil.SameFileError:
+                print("Copying aborted because source and destination are the same")
 
     for name_middle, name_suffixes in files_to_concat.items():
         out_name = "DJI_{}.MP4".format(name_middle)
@@ -48,7 +55,8 @@ def parse_args():
     parser.add_argument(
         "dir_out",
         type=pathlib.Path,
-        help="the path to the directory where the concatenated files should be placed"
+        nargs="?",
+        help="the path to the directory where the concatenated files should be placed (default: same as dir_in)"
     )
     return parser.parse_args()
 
