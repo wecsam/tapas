@@ -27,8 +27,10 @@ class YouTubeAPIClient:
             self.cache = {}
 
     def __del__(self):
-        with open(self.CACHE_FILE, "w") as f:
-            json.dump(self.cache, f, indent=4)
+        cache = getattr(self, "cache", None)
+        if cache:
+            with open(self.CACHE_FILE, "w") as f:
+                json.dump(cache, f, indent=4)
 
     def get_uploaded_videos(self, limit: Optional[int]=None) -> Generator[dict, None, None]:
         '''
