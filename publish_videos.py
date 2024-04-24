@@ -10,7 +10,17 @@ import wakepy.keep
 import tapas.clips_csv as clips_csv
 from tapas.youtube import YouTubeAPIClient
 
-def publish_videos(csv_path: pathlib.Path, playlist_id: str):
+DESCRIPTION_CREDIT = "Published with TAPAS: https://github.com/wecsam/tapas"
+
+def get_clip_description(clip: clips_csv.Clip, suppress_credit: bool):
+    if suppress_credit:
+        return clip.description
+
+    if clip.description:
+        return clip.description + "\n\n" + DESCRIPTION_CREDIT
+    return DESCRIPTION_CREDIT
+
+def publish_videos(csv_path: pathlib.Path, playlist_id: str, suppress_credit: bool=False):
     # Build a dictionary of all clips that should be published.
     clips = collections.OrderedDict()
     for clip in clips_csv.read_clips(csv_path):
@@ -53,7 +63,7 @@ def publish_videos(csv_path: pathlib.Path, playlist_id: str):
             {
                 "snippet": {
                     "title": clip.name,
-                    "description": clip.description,
+                    "description": get_clip_description(clip, suppress_credit),
                     "categoryId": 22
                 },
                 "status": {
@@ -87,7 +97,12 @@ def parse_args():
     )
     parser.add_argument(
         "playlist_id",
-        help="The ID of the playlist on YouTube"
+        help="the ID of the playlist on YouTube"
+    )
+    parser.add_argument(
+        "--suppress-credit",
+        action="store_true",
+        help="suppresses the line of text that credits TAPAS at the end of the description"
     )
     return parser.parse_args()
 
