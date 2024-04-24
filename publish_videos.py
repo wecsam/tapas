@@ -20,7 +20,7 @@ def get_clip_description(clip: clips_csv.Clip, suppress_credit: bool):
         return clip.description + "\n\n" + DESCRIPTION_CREDIT
     return DESCRIPTION_CREDIT
 
-def publish_videos(csv_path: pathlib.Path, playlist_id: str, suppress_credit: bool=False):
+def publish_videos(csv_path: pathlib.Path, playlist_id: str, category_id: str, suppress_credit: bool=False):
     # Build a dictionary of all clips that should be published.
     clips = collections.OrderedDict()
     for clip in clips_csv.read_clips(csv_path):
@@ -64,7 +64,7 @@ def publish_videos(csv_path: pathlib.Path, playlist_id: str, suppress_credit: bo
                 "snippet": {
                     "title": clip.name,
                     "description": get_clip_description(clip, suppress_credit),
-                    "categoryId": 22
+                    "categoryId": category_id
                 },
                 "status": {
                     "privacyStatus": "public"
@@ -98,6 +98,11 @@ def parse_args():
     parser.add_argument(
         "playlist_id",
         help="the ID of the playlist on YouTube"
+    )
+    parser.add_argument(
+        "--category-id",
+        default="22",
+        help="the YouTube category ID to assign to videos (default: 22)"
     )
     parser.add_argument(
         "--suppress-credit",
