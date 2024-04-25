@@ -72,45 +72,62 @@ class YouTubeAPIClient:
     def get_videos(self, video_ids: Iterable[str]) -> Generator[dict, None, None]:
         '''
         Given some video IDs, gets videos. Videos are cached.
-        Videos may not be yielded in the same order as their IDs were given.
+        Videos are yielded in the same order in which their IDs were given.
         '''
-        if "videos" not in self.cache:
-            self.cache["videos"] = {}
+        # TODO: this should be turned into an iterator class.
+        cache_videos = self.cache.get("videos")
+        if not isinstance(cache_videos, dict):
+            cache_videos = {}
+            self.cache["videos"] = cache_videos
 
-        buffer = []
-        def process_buffer():
-            id = ",".join(buffer)
-            buffer.clear()
+        videos_to_get_from_api = []
+        videos_to_yield = collections.OrderedDict()
 
-            videos = []
+        def get_videos_from_api():
+            ids_joined = ",".join(videos_to_get_from_api)
+            videos_to_get_from_api.clear()
+
             for video in self.concat_page_items(
                 lambda next_page_token: self.client.videos().list(
                     part="snippet,contentDetails,fileDetails,processingDetails",
                     maxResults=50,
                     pageToken=next_page_token,
-                    id=id
+                    id=ids_joined
                 )
             ):
-                print("Got video info from API:", video["id"], video["fileDetails"]["fileName"], video["snippet"]["title"])
-                self.cache["videos"][video["id"]] = video
-                videos.append(video)
-                # We make a list of videos instead of yielding them because we want the caching to happen
-                # even if the video isn't used/consumed.
-
-            return videos
+                id = video["id"]
+                print("Got video info from API:", id, video["fileDetails"]["fileName"], video["snippet"]["title"])
+                cache_videos[id] = video
+                if id in videos_to_yield:
+                    videos_to_yield[id] = video
 
         for id in video_ids:
-            video = self.cache["videos"].get(id)
+            video = cache_videos.get(id)
             if video and video["processingDetails"]["processingStatus"] != "processing":
                 print("Got video info from cache:", id, video["fileDetails"]["fileName"], video["snippet"]["title"])
+                if videos_to_get_from_api:
+                    # There are videos to retrieve from the API. Queue this one to be yielded.
+                    videos_to_yield[id] = video
+                else:
+                    # There are no videos to retrieve from the API, so yield this one immediately.
+                    yield video
+            else:
+                # The video is not in the cache. Still add it to the queue to maintain the order of videos.
+                videos_to_yield[id] = None
+                videos_to_get_from_api.append(id)
+
+                if len(videos_to_get_from_api) == 50:
+                    get_videos_from_api()
+                    for video in videos_to_yield.values():
+                        if video:
+                            yield video
+
+                    videos_to_yield.clear()
+
+        get_videos_from_api()
+        for video in videos_to_yield.values():
+            if video:
                 yield video
-                continue
-
-            buffer.append(id)
-            if len(buffer) == 50:
-                for video in process_buffer(): yield video
-
-        for video in process_buffer(): yield video
 
     def update_video(self, video_id: str, body: dict) -> dict:
         '''

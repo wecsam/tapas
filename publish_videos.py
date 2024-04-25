@@ -30,7 +30,7 @@ def publish_videos(csv_path: pathlib.Path, playlist_id: str, category_id: str, s
     uploaded = {}
     needs_renaming = set()
     youtube = YouTubeAPIClient()
-    for video in youtube.get_uploaded_videos(limit=200):
+    for video in youtube.get_uploaded_videos(limit=len(clips)):
         if video["processingDetails"]["processingStatus"] != "succeeded":
             continue
 
