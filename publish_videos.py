@@ -31,19 +31,25 @@ def publish_videos(csv_path: pathlib.Path, playlist_id: str, category_id: str, s
     needs_renaming = set()
     youtube = YouTubeAPIClient()
     for video in youtube.get_uploaded_videos(limit=len(clips)):
+        id = video["id"]
+        title = video["snippet"]["title"]
+        filename = video["fileDetails"]["fileName"]
+
         if video["processingDetails"]["processingStatus"] != "succeeded":
+            print("Ignoring video that is not done processing:", id, filename, title)
             continue
 
-        filename = video["fileDetails"]["fileName"]
-        uploaded[filename] = video["id"]
+        uploaded[filename] = id
 
         clip = clips.get(filename)
         if not clip:
             # This video is not a clip from the CSV.
-            print("Ignoring video with filename:", video["id"], filename)
+            print("Ignoring video with unrecognized filename:", id, filename, title)
             continue
 
-        if video["snippet"]["title"] != clip.name:
+        print("Discovered uploaded video:", id, filename, title)
+
+        if title != clip.name:
             needs_renaming.add(filename)
 
     # Assume that videos that need renaming also need to be added to the playlist and published.

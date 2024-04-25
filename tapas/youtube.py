@@ -96,7 +96,6 @@ class YouTubeAPIClient:
                 )
             ):
                 id = video["id"]
-                print("Got video info from API:", id, video["fileDetails"]["fileName"], video["snippet"]["title"])
                 cache_videos[id] = video
                 if id in videos_to_yield:
                     videos_to_yield[id] = video
@@ -104,7 +103,6 @@ class YouTubeAPIClient:
         for id in video_ids:
             video = cache_videos.get(id)
             if video and video["processingDetails"]["processingStatus"] != "processing":
-                print("Got video info from cache:", id, video["fileDetails"]["fileName"], video["snippet"]["title"])
                 if videos_to_get_from_api:
                     # There are videos to retrieve from the API. Queue this one to be yielded.
                     videos_to_yield[id] = video
