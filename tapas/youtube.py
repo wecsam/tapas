@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import collections
+import collections.abc
 import json
 import os
 from typing import Any, Callable, Dict, Generator, Iterable, Optional
@@ -9,6 +10,82 @@ import googleapiclient.discovery
 
 class YouTubeAPIClient:
     CACHE_FILE = "youtube-cache.json"
+
+    class VideoGetter:
+        '''
+        Given some video IDs, gets videos. Uses a cache.
+        Videos are returned by __next__ in the order in which their IDs were given.
+        '''
+
+        def __init__(self, parent: "YouTubeAPIClient", video_ids: Iterable[str]):
+            self._parent = parent
+            self._ids_to_get = iter(video_ids)
+            self._videos_to_return_values_iter = None
+
+        def __iter__(self):
+            return self
+
+        def __next__(self) -> dict:
+            if self._videos_to_return_values_iter is not None:
+                try:
+                    return next(self._videos_to_return_values_iter)
+                except StopIteration:
+                    self._videos_to_return_values_iter = None
+
+            cache = self.get_cache()
+            videos_to_return = collections.OrderedDict()
+            ids_to_get_from_api = []
+            while len(ids_to_get_from_api) != 50:
+                try:
+                    id = next(self._ids_to_get)
+                except StopIteration:
+                    break
+
+                video = cache.get(id)
+                processing_status = walk_dict(video, "processingDetails", "processingStatus")
+                if processing_status and processing_status != "processing":
+                    # The video is in the cache. If there are no videos to get from the API, this is the next video to
+                    # return. It can be returned immediately. Otherwise, it should be queued to be returned after the
+                    # other videos are gotten from the API.
+                    if not ids_to_get_from_api:
+                        return video
+                    videos_to_return[id] = video
+                else:
+                    videos_to_return[id] = None
+                    ids_to_get_from_api.append(id)
+
+            if not videos_to_return:
+                raise StopIteration
+
+            if ids_to_get_from_api:
+                # Get videos from the API.
+                ids_joined = ",".join(ids_to_get_from_api)
+                for video in self._parent.concat_page_items(
+                    lambda next_page_token: self._parent.client.videos().list(
+                        part="snippet,contentDetails,fileDetails,processingDetails",
+                        maxResults=50,
+                        pageToken=next_page_token,
+                        id=ids_joined
+                    )
+                ):
+                    id = video["id"]
+                    cache[id] = video
+                    if id in videos_to_return:
+                        videos_to_return[id] = video
+
+                for id, video in videos_to_return.items():
+                    if video is None:
+                        raise ValueError(f"Unknown video ID {id}")
+
+            self._videos_to_return_values_iter = iter(videos_to_return.values())
+            return next(self._videos_to_return_values_iter)
+
+        def get_cache(self) -> dict:
+            cache = self._parent.cache.get("videos")
+            if not isinstance(cache, dict):
+                cache = {}
+                self._parent.cache["videos"] = cache
+            return cache
 
     def __init__(self):
         self.client = googleapiclient.discovery.build(
@@ -69,63 +146,12 @@ class YouTubeAPIClient:
 
             yield video
 
-    def get_videos(self, video_ids: Iterable[str]) -> Generator[dict, None, None]:
+    def get_videos(self, video_ids: Iterable[str]) -> VideoGetter:
         '''
         Given some video IDs, gets videos. Videos are cached.
         Videos are yielded in the same order in which their IDs were given.
         '''
-        # TODO: this should be turned into an iterator class.
-        cache_videos = self.cache.get("videos")
-        if not isinstance(cache_videos, dict):
-            cache_videos = {}
-            self.cache["videos"] = cache_videos
-
-        videos_to_get_from_api = []
-        videos_to_yield = collections.OrderedDict()
-
-        def get_videos_from_api():
-            ids_joined = ",".join(videos_to_get_from_api)
-            videos_to_get_from_api.clear()
-
-            for video in self.concat_page_items(
-                lambda next_page_token: self.client.videos().list(
-                    part="snippet,contentDetails,fileDetails,processingDetails",
-                    maxResults=50,
-                    pageToken=next_page_token,
-                    id=ids_joined
-                )
-            ):
-                id = video["id"]
-                cache_videos[id] = video
-                if id in videos_to_yield:
-                    videos_to_yield[id] = video
-
-        for id in video_ids:
-            video = cache_videos.get(id)
-            if video and video["processingDetails"]["processingStatus"] != "processing":
-                if videos_to_get_from_api:
-                    # There are videos to retrieve from the API. Queue this one to be yielded.
-                    videos_to_yield[id] = video
-                else:
-                    # There are no videos to retrieve from the API, so yield this one immediately.
-                    yield video
-            else:
-                # The video is not in the cache. Still add it to the queue to maintain the order of videos.
-                videos_to_yield[id] = None
-                videos_to_get_from_api.append(id)
-
-                if len(videos_to_get_from_api) == 50:
-                    get_videos_from_api()
-                    for video in videos_to_yield.values():
-                        if video:
-                            yield video
-
-                    videos_to_yield.clear()
-
-        get_videos_from_api()
-        for video in videos_to_yield.values():
-            if video:
-                yield video
+        return self.VideoGetter(self, video_ids)
 
     def update_video(self, video_id: str, body: dict) -> dict:
         '''
@@ -183,6 +209,19 @@ class YouTubeAPIClient:
         Gets the location of the client secrets file.
         '''
         return os.environ["GOOGLE_CLIENT_SECRETS_FILE"]
+
+def walk_dict(d: Dict, *args: Any) -> Any:
+    '''
+    Walks down nested mappings. Calling walk_dict(d, 1, 2, 3) is the same as getting d[1][2][3], except that if any
+    subscript can't be gotten, None is returned.
+    '''
+    for key in args:
+        if not isinstance(d, collections.abc.Mapping):
+            return None
+
+        d = d.get(key)
+
+    return d
 
 def update_deep(d: Dict, u: Dict) -> Dict:
     '''
