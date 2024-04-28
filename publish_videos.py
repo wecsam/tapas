@@ -20,7 +20,9 @@ def get_clip_description(clip: clips_csv.Clip, suppress_credit: bool):
         return clip.description + "\n\n" + DESCRIPTION_CREDIT
     return DESCRIPTION_CREDIT
 
-def publish_videos(csv_path: pathlib.Path, playlist_id: str, category_id: str, suppress_credit: bool=False):
+def publish_videos(
+        csv_path: pathlib.Path, playlist_id: str, category_id: str, scan_more_uploads: int = 0,
+        suppress_credit: bool=False):
     # Build a dictionary of all clips that should be published.
     clips = collections.OrderedDict()
     for clip in clips_csv.read_clips(csv_path):
@@ -30,7 +32,7 @@ def publish_videos(csv_path: pathlib.Path, playlist_id: str, category_id: str, s
     uploaded = {}
     needs_renaming = set()
     youtube = YouTubeAPIClient()
-    for video in youtube.get_uploaded_videos(limit=len(clips)):
+    for video in youtube.get_uploaded_videos(limit=len(clips) + scan_more_uploads):
         id = video["id"]
         title = video["snippet"]["title"]
         filename = video["fileDetails"]["fileName"]
@@ -94,7 +96,8 @@ def parse_args():
         prog="publish_videos.py",
         description=
             "Renames videos on YouTube using names from a CSV file. Adds them to a playlist. Sets their privacy to "
-            "Public."
+            "Public. By default, this script only looks at the last n uploaded videos, where n is the number of "
+            "videos in the CSV. Specify --scan-more-uploads to increase this number."
     )
     parser.add_argument(
         "csv_path",
@@ -104,6 +107,12 @@ def parse_args():
     parser.add_argument(
         "playlist_id",
         help="the ID of the playlist on YouTube"
+    )
+    parser.add_argument(
+        "--scan-more-uploads",
+        type=int,
+        default=0,
+        help="the number of additional uploads to discover"
     )
     parser.add_argument(
         "--category-id",
