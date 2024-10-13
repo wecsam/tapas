@@ -5,7 +5,7 @@ import pathlib
 import shutil
 import typing
 
-import wakepy.keep
+from wakepy import keep
 
 import tapas.ffmpeg as ffmpeg
 
@@ -69,5 +69,5 @@ def parse_args():
     return parser.parse_args()
 
 if __name__ == "__main__":
-    with wakepy.keep.running():
+    with keep.running():
         dji_concat(**vars(parse_args()))

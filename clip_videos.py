@@ -6,7 +6,7 @@ import pathlib
 import shlex
 import subprocess
 
-import wakepy.keep
+from wakepy import keep
 
 import tapas.clips_csv as clips_csv
 import tapas.ffmpeg as ffmpeg
@@ -80,5 +80,5 @@ def parse_args():
     return parser.parse_args()
 
 if __name__ == "__main__":
-    with wakepy.keep.running():
+    with keep.running():
         clip_videos(**vars(parse_args()))

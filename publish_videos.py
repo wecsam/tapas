@@ -5,7 +5,7 @@ import pathlib
 import pprint
 import time
 
-import wakepy.keep
+from wakepy import keep
 
 import tapas.clips_csv as clips_csv
 from tapas.youtube import YouTubeAPIClient
@@ -127,5 +127,5 @@ def parse_args():
     return parser.parse_args()
 
 if __name__ == "__main__":
-    with wakepy.keep.running():
+    with keep.running():
         publish_videos(**vars(parse_args()))
