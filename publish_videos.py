@@ -21,8 +21,8 @@ def get_clip_description(clip: clips_csv.Clip, suppress_credit: bool):
     return DESCRIPTION_CREDIT
 
 def publish_videos(
-        csv_path: pathlib.Path, playlist_id: str, category_id: str, scan_more_uploads: int = 0,
-        suppress_credit: bool=False):
+        csv_path: pathlib.Path, playlist_id: str, category_id: str, uploads_playlist_id="", scan_more_uploads=0,
+        suppress_credit=False):
     # Build a dictionary of all clips that should be published.
     clips = collections.OrderedDict()
     for clip in clips_csv.read_clips(csv_path):
@@ -32,7 +32,10 @@ def publish_videos(
     uploaded = {}
     needs_renaming = set()
     youtube = YouTubeAPIClient()
-    for video in youtube.get_uploaded_videos(limit=len(clips) + scan_more_uploads):
+    uploaded_videos = (youtube.get_playlist_videos(uploads_playlist_id)
+                       if uploads_playlist_id else
+                       youtube.get_uploaded_videos(limit=len(clips) + scan_more_uploads))
+    for video in uploaded_videos:
         id = video["id"]
         title = video["snippet"]["title"]
         filename = video["fileDetails"]["fileName"]
@@ -109,10 +112,14 @@ def parse_args():
         help="the ID of the playlist on YouTube"
     )
     parser.add_argument(
+        "--uploads-playlist-id", "-u",
+        help="the ID of a playlist to scan instead of your uploaded videos"
+    )
+    parser.add_argument(
         "--scan-more-uploads",
         type=int,
         default=0,
-        help="the number of additional uploads to discover"
+        help="the number of additional uploads to discover (ignored if --uploads-playlist-id is passed)"
     )
     parser.add_argument(
         "--category-id",
