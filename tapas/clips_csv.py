@@ -42,6 +42,16 @@ def this_and_next(iterable: Iterable[T]) -> Generator[tuple[T, T], None, None]:
         yield previous, current
         previous = current
 
+def parse_timecode(s: str) -> int | float | None:
+    '''
+    Tries to parse a time expression as a number of seconds.
+    Returns None if the string cannot be parsed.
+    '''
+    try:
+        return float(s)
+    except ValueError:
+        return pytimeparse.parse(s)
+
 def read_clips(csv_path: pathlib.Path) -> Generator[Clip, None, None]:
     with open(csv_path, "r", newline="") as fin:
         for row_number, (this_row, next_row) in enumerate(this_and_next(csv.DictReader(fin)), 2):
@@ -62,13 +72,18 @@ def read_clips(csv_path: pathlib.Path) -> Generator[Clip, None, None]:
             if not inpoint:
                 print(f"Row {row_number} error: Inpoint missing")
                 break
-            inpoint = pytimeparse.parse(inpoint)
+            inpoint = parse_timecode(inpoint)
+            if inpoint is None:
+                print(f"Row {row_number} error: invalid format for Inpoint")
+                break
 
             outpoint = next_row.get("Inpoint")
             if not outpoint:
                 print(f"Row {row_number} error: next row's Inpoint missing")
                 break
-            outpoint = pytimeparse.parse(outpoint)
+            outpoint = parse_timecode(outpoint)
+            if outpoint is None:
+                print(f"Row {row_number} error: invalid format for Inpoint on next row")
 
             if inpoint >= outpoint:
                 print(f"Row {row_number} error: Inpoint is not less than next row's Inpoint")
