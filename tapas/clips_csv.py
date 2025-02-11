@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 import collections
 import csv
+import itertools
 import pathlib
-from typing import Generator, Iterable, TypeVar
+from typing import Generator
 
 import pytimeparse
 
@@ -20,28 +21,6 @@ Clip = collections.namedtuple(
 def get_clip_filename(clip: Clip) -> str:
     return f"{clip.file.stem}-{clip.inpoint}-{clip.outpoint}{clip.file.suffix}"
 
-T = TypeVar("T")
-def this_and_next(iterable: Iterable[T]) -> Generator[tuple[T, T], None, None]:
-    '''
-    Given a sequence like [A, B, C, D, E],
-    yields tuples like [(A, B), (B, C), (C, D), (D, E)].
-    '''
-    iterator = iter(iterable)
-
-    try:
-        previous = next(iterator)
-    except StopIteration:
-        return
-
-    while True:
-        try:
-            current = next(iterator)
-        except StopIteration:
-            return
-
-        yield previous, current
-        previous = current
-
 def parse_timecode(s: str) -> int | float | None:
     '''
     Tries to parse a time expression as a number of seconds.
@@ -54,7 +33,7 @@ def parse_timecode(s: str) -> int | float | None:
 
 def read_clips(csv_path: pathlib.Path) -> Generator[Clip, None, None]:
     with open(csv_path, "r", newline="") as fin:
-        for row_number, (this_row, next_row) in enumerate(this_and_next(csv.DictReader(fin)), 2):
+        for row_number, (this_row, next_row) in enumerate(itertools.pairwise(csv.DictReader(fin)), 2):
             if this_row.get("Skip"):
                 continue
 
