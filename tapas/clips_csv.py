@@ -32,7 +32,7 @@ def parse_timecode(s: str) -> int | float | None:
         return pytimeparse.parse(s)
 
 def read_clips(csv_path: pathlib.Path) -> Generator[Clip, None, None]:
-    with open(csv_path, "r", newline="") as fin:
+    with open(csv_path, "r", newline="", encoding="utf-8") as fin:
         for row_number, (this_row, next_row) in enumerate(itertools.pairwise(csv.DictReader(fin)), 2):
             if this_row.get("Skip"):
                 continue
