@@ -47,7 +47,7 @@ def concat(files_in: List[pathlib.Path], file_out: pathlib.Path) -> None:
         if creation_time:
             args.extend(["-metadata", f"creation_time={format_dt(creation_time)}"])
         args.extend(["-c", "copy", str(file_out.absolute())])
-        subprocess.run(args)
+        subprocess.run(args).check_returncode()
 
 if __name__ == "__main__":
     print("This is a library. It cannot be run directly.")
