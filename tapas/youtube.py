@@ -131,20 +131,27 @@ class YouTubeAPIClient:
         # The generator first gets playlist items, each of which as a video ID.
         # Then, get_videos gets the video for each video ID.
         for video in self.get_videos(
-            playlist_item["contentDetails"]["videoId"] for playlist_item in self.concat_page_items(
-                lambda next_page_token: self.client.playlistItems().list(
-                    part="contentDetails",
-                    maxResults=50,
-                    pageToken=next_page_token,
-                    playlistId=playlist_id
-                )
-            )
+            playlist_item["contentDetails"]["videoId"] for playlist_item in self.get_playlist_items(playlist_id)
         ):
             if limit == 0:
                 break
             limit -= 1
 
             yield video
+
+    def get_playlist_items(self, playlist_id: str) -> Generator[dict, None, None]:
+        '''
+        Gets the playlist items from the playlist.
+        This does not retrieve all video details; for that, use `get_playlist_videos`.
+        '''
+        return self.concat_page_items(
+            lambda next_page_token: self.client.playlistItems().list(
+                part="contentDetails,snippet",
+                maxResults=50,
+                pageToken=next_page_token,
+                playlistId=playlist_id
+            )
+        )
 
     def get_videos(self, video_ids: Iterable[str]) -> VideoGetter:
         '''
