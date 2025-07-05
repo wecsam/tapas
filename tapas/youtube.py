@@ -193,6 +193,36 @@ class YouTubeAPIClient:
             }
         ).execute()
 
+    def update_playlist_item(
+            self,
+            playlist_id: str,
+            playlist_item_id: str,
+            resource_kind: str,
+            video_id: str,
+            position: int,
+            note: str,
+    ) -> dict:
+        '''
+        Moves the video in the playlist to the specified position and updates its note.
+        '''
+        return self.client.playlistItems().update(
+            part="snippet,contentDetails",
+            body={
+                "id": playlist_item_id,
+                "snippet": {
+                    "playlistId": playlist_id,
+                    "position": position,
+                    "resourceId": {
+                        "kind": resource_kind,
+                        "videoId": video_id,
+                    }
+                },
+                "contentDetails": {
+                    "note": note,
+                },
+            }
+        ).execute()
+
     @staticmethod
     def concat_page_items(get_request: Callable[[Optional[str]], Any]) -> Generator[dict, None, None]:
         '''
