@@ -1,22 +1,22 @@
 #!/usr/bin/env python3
-import collections
 import csv
+from dataclasses import dataclass
 import itertools
 import pathlib
 from typing import Generator
 
 import pytimeparse
 
-Clip = collections.namedtuple(
-    "Clip",
-    (
-        "file",
-        "inpoint",
-        "outpoint",
-        "name",
-        "description"
-    )
-)
+@dataclass(frozen=True)
+class Clip:
+    '''
+    The file to clip from, the in and out points in seconds, the name and description of the clip.
+    '''
+    file: pathlib.PurePath
+    inpoint: float
+    outpoint: float
+    name: str
+    description: str
 
 def get_clip_filename(clip: Clip) -> str:
     return f"{clip.file.stem}-{clip.inpoint}-{clip.outpoint}{clip.file.suffix}"
