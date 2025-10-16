@@ -16,7 +16,7 @@ def clip_videos(csv_path: pathlib.Path, output_dir: pathlib.Path, encode=False):
         print("Error: output_dir does not exist")
         return
 
-    clips_from_file = collections.defaultdict(list)
+    clips_from_file = collections.defaultdict[pathlib.PurePath, list[clips_csv.Clip]](list)
     for clip in clips_csv.read_clips(csv_path):
         clips_from_file[clip.file].append(clip)
 
@@ -32,7 +32,7 @@ def clip_videos(csv_path: pathlib.Path, output_dir: pathlib.Path, encode=False):
 
         exec_ffmpeg = False
         for clip in clips:
-            filename = clips_csv.get_clip_filename(clip)
+            filename = clip.get_clip_filename()
             clip_path = output_dir.joinpath(filename)
             if clip_path.exists():
                 print("Already exists:", clip_path)

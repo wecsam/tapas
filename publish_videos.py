@@ -26,7 +26,7 @@ def publish_videos(
     # Build a dictionary of all clips that should be published.
     clips = collections.OrderedDict()
     for clip in clips_csv.read_clips(csv_path):
-        clips[clips_csv.get_clip_filename(clip)] = clip
+        clips[clip.get_clip_filename()] = clip
 
     # Find clips that are already uploaded.
     uploaded = {}

@@ -18,8 +18,11 @@ class Clip:
     name: str
     description: str
 
-def get_clip_filename(clip: Clip) -> str:
-    return f"{clip.file.stem}-{clip.inpoint}-{clip.outpoint}{clip.file.suffix}"
+    def get_clip_filename(self) -> str:
+        '''
+        Returns a filename for the clip, based on the source file name and the in and out points.
+        '''
+        return f"{self.file.stem}-{self.inpoint}-{self.outpoint}{self.file.suffix}"
 
 def parse_timecode(s: str) -> int | float | None:
     '''
