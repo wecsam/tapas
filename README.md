@@ -3,7 +3,7 @@ This repository contains a set of scripts that help you take long videos, split 
 smaller videos to YouTube, and then publish those videos in a playlist on YouTube.
 
 ## Setup
-This project targets Python 3.12.
+This project targets Python 3.13.
 
 Install required libraries:
 
