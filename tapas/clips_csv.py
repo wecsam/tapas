@@ -3,9 +3,12 @@ import csv
 from dataclasses import dataclass
 import itertools
 import pathlib
+import re
 from typing import Generator
 
 import pytimeparse
+
+CHARS_THAT_YOUTUBE_REMOVES = re.compile(r"[\.\-_]")
 
 @dataclass(frozen=True)
 class Clip:
@@ -22,7 +25,26 @@ class Clip:
         '''
         Returns a filename for the clip, based on the source file name and the in and out points.
         '''
-        return f"{self.file.stem}-{self.inpoint}-{self.outpoint}{self.file.suffix}"
+        inpoint_str = self._format_seconds(self.inpoint)
+        outpoint_str = self._format_seconds(self.outpoint)
+        return f"{self.file.stem}-{inpoint_str}-{outpoint_str}{self.file.suffix}"
+
+    def get_expected_youtube_title(self) -> str:
+        '''
+        Returns the expected YouTube title for the clip, based on filename.
+        '''
+        cleaned_stem = CHARS_THAT_YOUTUBE_REMOVES.sub(" ", self.file.stem)
+        inpoint_str = self._format_seconds(self.inpoint)
+        outpoint_str = self._format_seconds(self.outpoint)
+        return f"{cleaned_stem} {inpoint_str} {outpoint_str}"
+
+    @staticmethod
+    def _format_seconds(seconds: float) -> str:
+        '''
+        `seconds` is the value of either `inpoint` or `outpoint`. Returns `seconds` formatted such that it can be used
+        in a filename and not be mangled when YouTube generates a video title from the filename.
+        '''
+        return str(int(round(seconds * 100)))
 
 def parse_timecode(s: str) -> int | float | None:
     '''

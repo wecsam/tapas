@@ -24,13 +24,12 @@ def publish_videos(
         csv_path: pathlib.Path, playlist_id: str, category_id: str, uploads_playlist_id="", scan_more_uploads=0,
         suppress_credit=False):
     # Build a dictionary of all clips that should be published.
-    clips = collections.OrderedDict()
+    clips = collections.OrderedDict[str, clips_csv.Clip]()
     for clip in clips_csv.read_clips(csv_path):
-        clips[clip.get_clip_filename()] = clip
+        clips[clip.get_expected_youtube_title()] = clip
 
     # Find clips that are already uploaded.
-    uploaded = {}
-    needs_renaming = set()
+    uploaded: dict[str, str] = {} # title -> video ID
     youtube = YouTubeAPIClient()
     uploaded_videos = (youtube.get_playlist_videos(uploads_playlist_id)
                        if uploads_playlist_id else
@@ -38,35 +37,32 @@ def publish_videos(
     for video in uploaded_videos:
         id = video["id"]
         title = video["snippet"]["title"]
-        filename = video["fileDetails"]["fileName"]
 
         if video["processingDetails"]["processingStatus"] != "succeeded":
-            print("Ignoring video that is not done processing:", id, filename, title)
+            print("Ignoring video that is not done processing:", id, title)
             continue
 
-        uploaded[filename] = id
+        uploaded[title] = id
 
-        clip = clips.get(filename)
+        clip = clips.get(title)
         if not clip:
             # This video is not a clip from the CSV.
-            print("Ignoring video with unrecognized filename:", id, filename, title)
+            print("Ignoring video with unrecognized title:", id, title)
             continue
 
-        print("Discovered uploaded video:", id, filename, title)
-
-        if title != clip.name:
-            needs_renaming.add(filename)
+        print("Discovered uploaded video:", id, title)
 
     # Assume that videos that need renaming also need to be added to the playlist and published.
-    for filename, clip in clips.items():
-        video_id = uploaded.get(filename)
-        if not video_id:
-            print("Video not uploaded or not done processing:", filename, clip.name)
-            break
-
-        if filename not in needs_renaming:
+    for title, clip in clips.items():
+        video_id = uploaded.get(clip.name)
+        if video_id:
             print("Already renamed:", video_id, clip.name)
             continue
+
+        video_id = uploaded.get(title)
+        if not video_id:
+            print("Video not uploaded or not done processing:", title, clip.name)
+            break
 
         print("Renaming:", video_id, clip.name)
         result = youtube.update_video(
