@@ -79,13 +79,13 @@ def publish_videos(
             }
         )
         if not result.get("id"):
-            pprint(result)
+            pprint.pprint(result)
             return
 
         print("Adding it to the playlist")
         result = youtube.add_video_to_playlist(playlist_id, video_id)
         if not result.get("id"):
-            pprint(result)
+            pprint.pprint(result)
             return
 
         time.sleep(0.1) # extremely conservative API rate limit
