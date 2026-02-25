@@ -88,6 +88,7 @@ def read_clips(csv_path: pathlib.Path) -> Generator[Clip, None, None]:
             outpoint = parse_timecode(outpoint)
             if outpoint is None:
                 print(f"Row {row_number} error: invalid format for Inpoint on next row")
+                break
 
             if inpoint >= outpoint:
                 print(f"Row {row_number} error: Inpoint is not less than next row's Inpoint")
